@@ -640,6 +640,8 @@ var igv = (function (igv) {
             url,
             result;
 
+        igvxhr.cancelAll();
+
         // See if we're ready to respond to a search, if not just queue it up and return
         if (igv.browser === undefined || igv.browser.genome === undefined) {
             igv.browser.initialLocus = feature;

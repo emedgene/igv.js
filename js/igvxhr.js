@@ -30,6 +30,14 @@ var igvxhr = (function (igvxhr) {
     const GZIP = 1;
     const BGZF = 2;
 
+    var http_requests = [];
+
+    igvxhr.cancelAll = function() {
+        while (http_requests.length) {
+            http_requests.pop().abort();
+        }
+    }
+
     igvxhr.load = function (url, options) {
 
         if (!options) options = {};
@@ -47,6 +55,8 @@ var igvxhr = (function (igvxhr) {
                 isSafari = navigator.vendor.indexOf("Apple") == 0 && /\sSafari\//.test(navigator.userAgent),
                 withCredentials = options.withCredentials,
                 header_keys, key, value, i;
+
+            http_requests.push(xhr);
 
             // Support for GCS paths.
             url = url.startsWith("gs://") ? igv.Google.translateGoogleCloudURL(url) : url;
@@ -143,7 +153,7 @@ var igvxhr = (function (igvxhr) {
             };
 
             xhr.onabort = function (event) {
-                console.log("Aborted");
+                console.debug("Aborted");
                 reject(new igv.AbortLoad());
             };
 

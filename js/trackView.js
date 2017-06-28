@@ -465,7 +465,7 @@ var igv = (function (igv) {
                     self.loading = false;
 
                     if (error instanceof igv.AbortLoad) {
-                        console.log("Aborted ---");
+                        console.debug("Aborted ---");
                     }
                     else {
                         igv.stopSpinnerAtParentElement(self.trackDiv);
