@@ -28,8 +28,15 @@ var igv = (function (igv) {
     var NONE = 0;
     var GZIP = 1;
     var BGZF = 2;
-    igv.xhr = {
 
+    var http_requests = [];
+
+    igv.xhr = {
+        cancelAll: function() {
+            while (http_requests.length) {
+                http_requests.pop().abort();
+            }
+        },
 
         load: function (url, options) {
 
@@ -171,6 +178,8 @@ var igv = (function (igv) {
                 const responseType = options.responseType;
                 const contentType = options.contentType;
                 const mimeType = options.mimeType;
+
+                http_requests.push(xhr);
 
                 var rangeEnd = null;
                 if (range) {

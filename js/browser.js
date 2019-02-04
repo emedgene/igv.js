@@ -383,7 +383,7 @@ var igv = (function (igv) {
         if (genomeConfig.tracks) {
             await self.loadTrackList(genomeConfig.tracks);
         }
-        
+
         self.resize();    // Force recomputation and repaint
         return self.genome;
 
@@ -1403,6 +1403,8 @@ var igv = (function (igv) {
             loci;
 
         const genome = this.genome;
+
+        igv.xhr.cancelAll();
 
         if (string && string.trim().toLowerCase() === "all") string = "all";
 
