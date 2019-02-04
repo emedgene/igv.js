@@ -144,7 +144,7 @@ var igv = (function (igv) {
                 // Support for GCS paths.
                 url = url.startsWith("gs://") ? igv.google.translateGoogleCloudURL(url) : url;
 
-                const headers = options.headers || {};
+                var headers = options.headers || {};
 
 
                 if (options.token) {
@@ -159,7 +159,7 @@ var igv = (function (igv) {
                 const isChrome = navigator.userAgent.indexOf('Chrome') > -1;
                 const isSafari = navigator.vendor.indexOf("Apple") == 0 && /\sSafari\//.test(navigator.userAgent);
 
-                if (range && isChrome && !isAmazonV4Signed(url)) {
+                if (range && isChrome && !isAmazonV4Signed(url) && !igv.Azure.isAzureURL(url) && !url.includes("files2.emedgene")) {
                     // Hack to prevent caching for byte-ranges. Attempt to fix net:err-cache errors in Chrome
                     url += url.includes("?") ? "&" : "?";
                     url += "someRandomSeed=" + Math.random().toString(36);
@@ -172,11 +172,15 @@ var igv = (function (igv) {
                 const contentType = options.contentType;
                 const mimeType = options.mimeType;
 
+                var rangeEnd = null;
+                if (range) {
+                    rangeEnd = range.size ? range.start + range.size - 1 : "";
+                    url = igv.Azure.addQueryParams(url, range.start, rangeEnd);
+                }
+
                 xhr.open(method, url);
 
-
-                if (range) {
-                    var rangeEnd = range.size ? range.start + range.size - 1 : "";
+                if (range && rangeEnd) {
                     xhr.setRequestHeader("Range", "bytes=" + range.start + "-" + rangeEnd);
                     //      xhr.setRequestHeader("Cache-Control", "no-cache");    <= This can cause CORS issues, disabled for now
                 }
@@ -189,6 +193,7 @@ var igv = (function (igv) {
                 if (responseType) {
                     xhr.responseType = responseType;
                 }
+
                 if (headers) {
                     header_keys = Object.keys(headers);
                     for (i = 0; i < header_keys.length; i++) {
@@ -207,7 +212,17 @@ var igv = (function (igv) {
                 xhr.onload = function (event) {
                     // when the url points to a local file, the status is 0 but that is no error
                     if (xhr.status == 0 || (xhr.status >= 200 && xhr.status <= 300)) {
-                        if (range && xhr.status != 206 && range.start !== 0) {
+                        if (igv.Azure.isAzureURL(xhr.responseURL)) {
+                            headers = headers || {};
+                            headers['authorization'] = xhr.getResponseHeader("authorization");
+                            headers['content-type'] = xhr.getResponseHeader("Content-Type");
+                            options.headers = headers;
+
+                            url = xhr.getResponseHeader("location");
+                            igv.Azure.proxyDomainName = (new URL(url)).hostname;
+                            igv.xhr.load(url, options).then(fullfill);
+                        }
+                        else if (range && xhr.status != 206 && range.start !== 0 && !xhr.responseURL.includes(igv.Azure.proxyDomainName)) {
                             // For small files a range starting at 0 can return the whole file => 200
                             handleError("ERROR: range-byte header was ignored for url: " + url);
                         }
