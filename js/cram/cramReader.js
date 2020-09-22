@@ -50,12 +50,12 @@ var igv = (function (igv) {
         this.genome = genome;
 
         this.cramFile = new gmodCRAM.CramFile({
-            filehandle: new FileHandler(config.url),
+            filehandle: new FileHandler(config.url, config),
             seqFetch: config.seqFetch || seqFetch.bind(this),
             checkSequenceMD5: config.checkSequenceMD5 !== undefined ? config.checkSequenceMD5 : true
         })
 
-        const indexFileHandle = new FileHandler(config.indexURL)
+        const indexFileHandle = new FileHandler(config.indexURL, config)
         this.indexedCramFile = new gmodCRAM.IndexedCramFile({
             cram: this.cramFile,
             index: new gmodCRAM.CraiIndex({
@@ -363,9 +363,10 @@ var igv = (function (igv) {
 
     class FileHandler {
 
-        constructor(source) {
+        constructor(source, config) {
             this.position = 0
             this.url = source
+            this.config = config
             this.cache = new BufferCache({
                 fetch: (start, length) => this._fetch(start, length),
             })
@@ -375,7 +376,7 @@ var igv = (function (igv) {
 
             const loadRange = {start: position, size: length};
             this._stat = {size: undefined}
-            return igv.xhr.loadArrayBuffer(this.url, igv.buildOptions({}, {range: loadRange}))
+            return igv.xhr.loadArrayBuffer(this.url, igv.buildOptions(this.config, {range: loadRange}))
                 .then(function (arrayBuffer) {
                     const nodeBuffer = Buffer.from(arrayBuffer)
                     return nodeBuffer
@@ -392,7 +393,7 @@ var igv = (function (igv) {
         }
 
         async readFile() {
-            const arrayBuffer = await igv.xhr.loadArrayBuffer(this.url, igv.buildOptions({}))
+            const arrayBuffer = await igv.xhr.loadArrayBuffer(this.url, igv.buildOptions(this.config))
             return Buffer.from(arrayBuffer)
         }
 
